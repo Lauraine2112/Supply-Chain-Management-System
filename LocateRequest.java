@@ -1,5 +1,4 @@
 package edu.ucalgary.ensf409;
-
 import java.sql.*;
 import java.util.*;
 
@@ -9,14 +8,13 @@ public class LocateRequest {
 	private final String PASSWORD; // store the user's account password
 	private Connection dbConnect; // connection to desired database
 	private ResultSet results; // table of the database result set
-	private String furniture; // stores user input for furniture
-	private String type; // stores user input for type of material
-	private int amount; // stores user input for amount of furniture
-//	private boolean requestStatus = true;
+	private static String furniture; // stores user input for furniture
+	private static String type; // stores user input for type of material
+	private static int amount; // stores user input for amount of furniture
 	private String[] bestCombination = null;
 	private int bestPrice;
-	private int totalPrice = 0;
-	private String[] orderedIDs = null;
+	private static int totalPrice = 0;
+	private static String[] orderedIDs = null;
 	private String[][] foundRequest;
 
 	LocateRequest(String dburl, String username, String password, String furniture, String type, int amount) {
@@ -61,8 +59,8 @@ public class LocateRequest {
 	 * 
 	 * @return furniture
 	 */
-	public String getFurniture() {
-		return this.furniture;
+	public static String getFurniture() {
+		return furniture;
 	}
 
 	/**
@@ -80,8 +78,8 @@ public class LocateRequest {
 	 * 
 	 * @return type
 	 */
-	public String getType() {
-		return this.type;
+	public static String getType() {
+		return type;
 	}
 
 	/**
@@ -99,8 +97,8 @@ public class LocateRequest {
 	 * 
 	 * @return amount
 	 */
-	public int getAmount() {
-		return this.amount;
+	public static int getAmount() {
+		return amount;
 	}
 
 	public void setAmount(int amount) {
@@ -130,8 +128,8 @@ public class LocateRequest {
 	 * 
 	 * @return bestPrice
 	 */
-	public int getTotalPrice() {
-		return this.totalPrice;
+	public static int getTotalPrice() {
+		return totalPrice;
 	}
 
 	/**
@@ -139,8 +137,17 @@ public class LocateRequest {
 	 * 
 	 * @return orderedIDs
 	 */
-	public String[] getOrderedIDs() {
-		return this.orderedIDs;
+	public static String[] getOrderedIDs() {
+		return orderedIDs;
+	}
+	
+	/**
+	 * Getter method for private data member orderedIDs.
+	 * 
+	 * @return orderedIDs
+	 */
+	public String[][] getFoundRequest() {
+		return foundRequest;
 	}
 
 	/**
@@ -167,13 +174,13 @@ public class LocateRequest {
 					.executeQuery("SELECT COUNT(*) FROM " + this.furniture + " WHERE Type = '" + this.type + "'");
 
 			while (rs.next()) {
-				rowNum = rs.getInt(1); // 2
+				rowNum = rs.getInt(1);
 			}
 
 			rs = myStmtCount.executeQuery(
 					"SELECT COUNT(*) FROM information_schema.columns WHERE table_name = '" + this.furniture + "'");
 			while (rs.next()) {
-				colNum = rs.getInt(1); // 8
+				colNum = rs.getInt(1);
 			}
 
 			myStmtCount.close();
@@ -182,7 +189,7 @@ public class LocateRequest {
 			e.printStackTrace();
 		}
 
-		foundRequest = new String[rowNum][colNum];
+		this.foundRequest = new String[rowNum][colNum];
 		String query = "SELECT * FROM " + this.furniture + " WHERE Type = " + "'" + this.type + "'";
 		try {
 			Statement myStmntNames = dbConnect.createStatement(); // creates a statement
@@ -191,7 +198,7 @@ public class LocateRequest {
 			int counter = 0;
 			while (results.next()) {// while there is a next row of "type"
 				for (int j = 0; j < colNum; j++) { // goes through each column
-					foundRequest[counter][j] = results.getString(j + 1);
+					this.foundRequest[counter][j] = results.getString(j + 1);
 				}
 				counter++;
 			}
@@ -201,16 +208,16 @@ public class LocateRequest {
 			e.printStackTrace();
 		}
 		
-		if (foundRequest.length == 0) {
+		if (this.foundRequest.length == 0) {
 			printInvalidOutputMessage(); // terminates program
 		}
 		
 		String[] outputRow = new String[countBoolean(foundRequest)];// countBoolean(foundRequest)];
 		for (int i = 0; i < this.amount; i++) {
-			System.out.println("\nfoundRequest in getRequest is: ");
-			for (String[] row : foundRequest) {
-				System.out.println(Arrays.toString(row));
-			}
+//			System.out.println("\nfoundRequest in getRequest is: ");
+//			for (String[] row : foundRequest) {
+//				System.out.println(Arrays.toString(row));
+//			}
 
 			findCombinations(2, foundRequest.length, outputRow.length, foundRequest, outputRow);
 			if (this.bestCombination != null) {
@@ -222,29 +229,93 @@ public class LocateRequest {
 		for (String val : orderedIDs) {
 			removeFromInventory(val); // removes from database
 		}
-
-//		calls to OrderForm Class
-
+		
+		OrderForm form = new OrderForm();
+		form.createFile();
+		printValidOutputMessage();
+	}
+	
+	public void printValidOutputMessage() {
+		String[] unique = Arrays.stream(this.orderedIDs).distinct().toArray(String[]::new);
+		StringBuffer validMessage = new StringBuffer();
+		validMessage.append("User request: " 
+							+ "\nType: " + getType() 
+							+ "\nFurniture category: " + getFurniture()
+							+ "\nNumber of items requested: " + getAmount() + "\n");
+		validMessage.append("Output: Purchase \n");
+		for (String val : unique) {
+			validMessage.append(" - " + val + "\n");
+		}
+		validMessage.append("for $" + getTotalPrice());
+		
+		System.out.println(validMessage.toString());
 	}
 
 	public void printInvalidOutputMessage() {
 		StringBuffer invalidMessage = new StringBuffer();
-		invalidMessage
-				.append("Order cannot be fulfilled based on current inventory. " + "Suggested manufacturers are:\n");
+		int rowNum = 0;
+		String[] manuIDs;
+		String[] uniqueIDs;
+		String[] manuNames;
+		
+		try {
+			Statement myStmtCount = dbConnect.createStatement(); // creates a statement
+			ResultSet rs = myStmtCount
+					.executeQuery("SELECT COUNT(*) FROM " + this.furniture);
+
+			while (rs.next()) {
+				rowNum = rs.getInt(1);
+			} 
+			myStmtCount.close();
+			rs.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		manuIDs = new String[rowNum];
+		
+		try {
+			Statement myStmtManufacturer = dbConnect.createStatement(); // creates statement
+			results = myStmtManufacturer.executeQuery("SELECT * FROM " + this.furniture);
+			
+			int i = 0;
+			while (results.next()) { 
+				manuIDs[i] = results.getString("ManuID");
+				i++;
+			}
+
+			myStmtManufacturer.close(); // close statement
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		uniqueIDs = Arrays.stream(manuIDs).distinct().toArray(String[]::new);
+		manuNames = new String[uniqueIDs.length];
 
 		try {
 			Statement myStmtInvalidOutput = dbConnect.createStatement(); // creates statement
-			results = myStmtInvalidOutput.executeQuery("SELECT Name FROM MANUFACTURER");
-
-			while (results.next()) { // goes through all the rows of the studio table
-				invalidMessage.append(results.getString(1) + "\n");
+			results = myStmtInvalidOutput.executeQuery("SELECT * FROM MANUFACTURER");
+			
+			int count = 0;
+			while (results.next()) {
+				for (String val : uniqueIDs) {
+					if (val.equals(results.getString("ManuID"))) {
+						manuNames[count] = results.getString("Name");	
+						count++;
+						break;
+					}
+				}
 			}
-
 			myStmtInvalidOutput.close(); // close statement
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-
+		
+		invalidMessage.append("Order cannot be fulfilled based on current inventory. " 
+					+ "Suggested manufacturers are:\n");
+		for (String val : manuNames) {
+			invalidMessage.append(val + "\n");
+		}
+		
 		System.out.println(invalidMessage.toString());
 		System.exit(1);
 	}
@@ -312,7 +383,7 @@ public class LocateRequest {
 //			System.out.println(Arrays.toString(row));
 //		}
 
-	if (newLength != 0) {
+//	if (newLength != 0) { //check
 			this.foundRequest = new String[newLength][this.foundRequest[0].length];
 			int i = 0;
 //			System.out.println();
@@ -321,9 +392,8 @@ public class LocateRequest {
 					System.arraycopy(row, 0, this.foundRequest[i++], 0, row.length);
 //					System.out.println(Arrays.toString(row));
 				}
-
 			}
-		}
+//		}
 //		System.out.println("\nNew foundRequest in removeFound is: ");
 //			for (String[] row : foundRequest) {
 //				System.out.println(Arrays.toString(row));
