@@ -1,6 +1,6 @@
 ## README
 
-#Author Information#
+Author Information
 --------------------------------------------------------------------------------
 Name:   Lauraine Baffot   
 UCID:   30086699                     
@@ -14,7 +14,7 @@ Name:   Chloe Bouchard
 UCID:   30103458                     
 Email:  chloe.bouchard@ucalgary.ca
 
-#How to Run Program#
+How to Run Program
 --------------------------------------------------------------------------------
 Please follow these steps to ensure the program is run properly:
 
@@ -58,7 +58,7 @@ Please follow these steps to ensure the program is run properly:
     9. If an order is completed, the orderForm.txt file will be created within
        the same folder as the edu and lib folders.
 
-#How to Run JUnit Tests#
+How to Run JUnit Tests
 --------------------------------------------------------------------------------
 Please follow these steps to ensure the program is run properly:
 
