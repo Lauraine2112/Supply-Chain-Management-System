@@ -77,7 +77,14 @@ Please follow these steps to ensure the program is run properly:
     
     5. Using the terminal, go to the directory where edu and lib are located.
 
-    6. To compile the java file, enter "javac edu/ucalgary/ensf409/LocateRequest.java" 
+    6. To compile the java file on Windows, enter:
+       "javac -cp .;lib/mysql-connector-java-8.0.23.jar 
+       edu/ucalgary/ensf409/LocateRequest.java" 
+       into the Terminal and press Enter.
+       
+       To compile the java file on Mac, enter:
+       "javac -cp .:lib/mysql-connector-java-8.0.23.jar 
+       edu/ucalgary/ensf409/LocateRequest.java" 
        into the Terminal and press Enter.
 
     7. To compile the test java file on Windows, enter:
